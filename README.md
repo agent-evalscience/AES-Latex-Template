@@ -117,8 +117,8 @@ examples, including tables that span multiple pages.
 Add sources to `references.bib` and cite them using:
 
 ```tex
-\citet{kiela2021dynabench}  % Author (year)
-\citep{rajpurkar2016squad}  % (Author, year)
+\citet{hua2025charting}  % Author (year)
+\citep{na2025psychotherapy}  % (Author, year)
 ```
 
 Print the reference list with:

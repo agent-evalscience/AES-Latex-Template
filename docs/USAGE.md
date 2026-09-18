@@ -46,9 +46,9 @@ For equations, use `\label` and `\eqref` with the `amsmath` package.
 ## Citations and references
 
 ```tex
-\citet{kiela2021dynabench}       % Author (year)
-\citep{rajpurkar2016squad}       % (Author, year)
-\citep{chiang2024arena,geiger2012}
+\citet{hua2025charting}       % Author (year)
+\citep{na2025psychotherapy}       % (Author, year)
+\citep{ma2025manipulation,hua2025scoping}
 ...
 \bibliography{references}
 ```
