@@ -1,0 +1,480 @@
+\NeedsTeXFormat{LaTeX2e}[2020-10-01]
+\ProvidesPackage{aes}[2026/09/18 v0.1 Agent Evaluation Science]
+\newif\ifaes@classpublic
+\newif\ifaes@classreview
+\DeclareOption{public}{\aes@classpublictrue}
+\DeclareOption{review}{\aes@classreviewtrue}
+\DeclareOption*{\PackageError{aes}{Unknown option `\CurrentOption'}
+ {Use public (default) or review. Paper size and font size are fixed.}}
+\ProcessOptions\relax
+\ifaes@classpublic\ifaes@classreview
+ \PackageError{aes}{Options public and review are mutually exclusive}
+  {Choose exactly one publication mode.}
+\fi\fi
+% AES is an article style; use \documentclass[11pt,a4paper]{article}.
+\@ifclassloaded{article}{}{%
+ \PackageError{aes}{The aes package requires the article class}
+  {Use documentclass[11pt,a4paper]{article} followed by usepackage{aes}.}%
+ \expandafter\@@end
+}
+\RequirePackage{iftex}
+\ifPDFTeX
+ \PackageError{aes}{This template requires XeLaTeX or LuaLaTeX}
+  {Overleaf: set the project Compiler to XeLaTeX, then Recompile from scratch.
+   Local: run latexmk -xelatex main.tex.}
+ % Stop the entire job, not just class loading, to prevent cascading errors.
+ \expandafter\@@end
+\fi
+\RequirePackage{fix-cm}
+% ===== Layout settings (edit here; dimensions are TeX points unless mm) =====
+% First-page top is a physical target; later pages retain 22 mm margins.
+\newlength{\aesfirstpagetop}  \setlength{\aesfirstpagetop}{16mm}
+\newlength{\aesbodytop}       \setlength{\aesbodytop}{22mm}
+\newlength{\aesbrandtitlesep} \setlength{\aesbrandtitlesep}{14pt}
+\newlength{\aestitleauthorsep}\setlength{\aestitleauthorsep}{12pt}
+\newlength{\aesauthorabstractsep}\setlength{\aesauthorabstractsep}{16pt}
+\newlength{\aessectionbefore} \setlength{\aessectionbefore}{16pt}
+\newlength{\aessectionafter}  \setlength{\aessectionafter}{6pt}
+\newlength{\aessubsectionbefore}\setlength{\aessubsectionbefore}{12pt}
+\newlength{\aessubsectionafter}\setlength{\aessubsectionafter}{4pt}
+\newlength{\aessubsubsectionbefore}\setlength{\aessubsubsectionbefore}{9pt}
+\newlength{\aessubsubsectionafter}\setlength{\aessubsubsectionafter}{3pt}
+\RequirePackage[a4paper,left=22mm,right=22mm,top=\aesbodytop,bottom=22mm,
+ headheight=12pt,headsep=14pt]{geometry}
+\raggedbottom % Keep local spacing stable; allow unequal bottom whitespace.
+\RequirePackage{fontspec}
+\setmainfont{OpenSans}[
+ Path=fonts/,Extension=.ttf,
+ UprightFont=*-Regular,BoldFont=*-Bold,
+ ItalicFont=*-Italic,BoldItalicFont=*-BoldItalic]
+\newcommand{\regularfont}{\normalfont\mdseries}
+\RequirePackage[english]{babel}
+\RequirePackage{xcolor,graphicx,tcolorbox,etoolbox}
+\definecolor{aesink}{HTML}{090C27}
+\definecolor{aespurple}{HTML}{6658E8}
+\definecolor{aestint}{HTML}{F4F3FA}
+\definecolor{bodyink}{HTML}{111318}
+\definecolor{secondary}{HTML}{454754}
+\definecolor{aeslink}{HTML}{5146AD}
+\renewcommand{\normalsize}{%
+ \@setfontsize\normalsize{11pt}{13.6pt}%
+ \abovedisplayskip 10pt plus 2pt minus 2pt
+ \abovedisplayshortskip 6pt plus 2pt minus 2pt
+ \belowdisplayshortskip 8pt plus 2pt minus 2pt
+ \belowdisplayskip\abovedisplayskip
+ \let\@listi\@listI}
+\normalsize
+% A normal blank line separates paragraphs; authors need no special command.
+\RequirePackage[skip=4pt,indent=0pt]{parskip}
+\RequirePackage{caption,booktabs}
+\DeclareCaptionLabelSeparator{aespipe}{\enspace\textbar\enspace}
+\DeclareCaptionFont{aescaption}{\regularfont\fontsize{10}{12}\selectfont\color{bodyink}}
+\captionsetup{font=aescaption,labelfont=normalfont,textfont=normalfont,
+ labelsep=aespipe,format=plain,justification=raggedright,
+ singlelinecheck=false,skip=6pt}
+\setlength{\textfloatsep}{16pt plus 2pt minus 2pt}
+\setlength{\floatsep}{12pt plus 2pt minus 2pt}
+\setlength{\intextsep}{16pt plus 2pt minus 2pt}
+\RequirePackage[authoryear,round]{natbib}
+\RequirePackage{xurl}
+\RequirePackage[backref=section,colorlinks=true,citecolor=aeslink,
+ urlcolor=aeslink,linkcolor=bodyink,pdfborder={0 0 0},breaklinks=true]{hyperref}
+\urlstyle{same}
+
+% ===== cite-backlinks =====
+% Load after natbib and hyperref (with backref=section).
+\RequirePackage{etoolbox}
+
+\newcounter{aes@citationtarget}
+% Record a separate destination for each rendered citation, including repeated
+% citations on one page. Keep each bibliography entry's display numbers local.
+\renewcommand*\Hy@backout[1]{%
+  \@bsphack
+  \ifBR@enable
+    \stepcounter{aes@citationtarget}%
+    \ifcsundef{aes@count@#1}{\csgdef{aes@count@#1}{0}}{}%
+    \csnumgdef{aes@count@#1}{\csuse{aes@count@#1}+1}%
+    \edef\aes@target{aes.citation.\arabic{aes@citationtarget}}%
+    \Hy@raisedlink{\hyper@anchorstart{\aes@target}\hyper@anchorend}%
+    \protected@write\@auxout{}{%
+      \string\@writefile{brf}{%
+        \string\backcite{#1}{{\thepage}{\csuse{aes@count@#1}}{\aes@target}}%
+      }%
+    }%
+  \fi
+  \@esphack
+}
+\renewcommand*\backref[1]{}
+\renewcommand*\backrefxxx[3]{%
+  \begingroup\hypersetup{linkcolor=aeslink}%
+  \hyperlink{#3}{#2}\endgroup
+}
+\renewcommand*\backrefalt[4]{%
+  \ifnum#1>0\relax
+    \space{\normalfont\fontsize{9}{11}\selectfont
+      \textcolor{secondary}{Cited at: }#2.}%
+  \fi
+}
+\renewcommand*\backrefsep{, }
+\renewcommand*\backreftwosep{, }
+\renewcommand*\backreflastsep{, }
+
+% ===== authors =====
+\RequirePackage{xparse,xcolor,hyperref}
+\providecolor{bodyink}{HTML}{111318}
+\providecolor{secondary}{HTML}{454754}
+\providecommand{\regularfont}{\normalfont}
+\ExplSyntaxOn
+\seq_new:N \g_aes_authors_seq
+\seq_new:N \g_aes_metadata_authors_seq
+\NewExpandableDocumentCommand \aesmetaauthors {}
+ {\seq_use:Nn \g_aes_metadata_authors_seq {;~}}
+\seq_new:N \g_aes_affiliations_seq
+\tl_new:N \g_aes_emails_tl
+\tl_new:N \g_aes_equal_note_tl
+\tl_new:N \g_aes_corresponding_note_tl
+\tl_gset:Nn \g_aes_equal_note_tl {Equal~contribution.}
+\tl_gset:Nn \g_aes_corresponding_note_tl {Corresponding~author.}
+\bool_new:N \g_aes_has_equal_bool
+\bool_new:N \g_aes_has_corresponding_bool
+\tl_new:N \l_aes_affil_tl
+\tl_new:N \l_aes_marks_tl
+\bool_new:N \l_aes_equal_bool
+\bool_new:N \l_aes_corresponding_bool
+\keys_define:nn {aes/author}
+ {
+  affil .tl_set:N = \l_aes_affil_tl,
+  equal .bool_set:N = \l_aes_equal_bool,
+  equal .default:n = true,
+  corresponding .bool_set:N = \l_aes_corresponding_bool,
+  corresponding .default:n = true,
+  corr .meta:n = {corresponding=#1},
+  corr .default:n = true
+ }
+\cs_new_protected:Npn \aes_author_item:nn #1#2
+ {\mbox{#1\tl_if_blank:nF {#2}{\textsuperscript{#2}}}}
+\NewDocumentCommand \aesauthor {O{}m}
+ {
+  \seq_gput_right:Nn \g_aes_metadata_authors_seq {#2}
+  \group_begin:
+  \tl_clear:N \l_aes_affil_tl
+  \bool_set_false:N \l_aes_equal_bool
+  \bool_set_false:N \l_aes_corresponding_bool
+  \keys_set:nn {aes/author}{#1}
+  \tl_set_eq:NN \l_aes_marks_tl \l_aes_affil_tl
+  \bool_if:NT \l_aes_equal_bool
+   {
+    \tl_if_empty:NF \l_aes_marks_tl {\tl_put_right:Nn \l_aes_marks_tl {,}}
+    \tl_put_right:Nn \l_aes_marks_tl {\textdagger}
+    \bool_gset_true:N \g_aes_has_equal_bool
+   }
+  \bool_if:NT \l_aes_corresponding_bool
+   {
+    \tl_if_empty:NF \l_aes_marks_tl {\tl_put_right:Nn \l_aes_marks_tl {,}}
+    \tl_put_right:Nn \l_aes_marks_tl {*}
+    \bool_gset_true:N \g_aes_has_corresponding_bool
+   }
+  \seq_gput_right:Nx \g_aes_authors_seq
+   {\exp_not:N \aes_author_item:nn {\exp_not:n {#2}}{\exp_not:V \l_aes_marks_tl}}
+  \group_end:
+ }
+\NewDocumentCommand \aesaffiliation {mm}
+ {\seq_gput_right:Nn \g_aes_affiliations_seq {\textsuperscript{#1}\,#2}}
+\NewDocumentCommand \aesemails {m}{\tl_gset:Nn \g_aes_emails_tl {#1}}
+\NewDocumentCommand \aesemail {m}{\href{mailto:#1}{\nolinkurl{#1}}}
+\NewDocumentCommand \aesequalnote {m}{\tl_gset:Nn \g_aes_equal_note_tl {#1}}
+\NewDocumentCommand \aescorrespondingnote {m}{\tl_gset:Nn \g_aes_corresponding_note_tl {#1}}
+\NewDocumentCommand \aesclearauthors {}
+ {
+  \seq_gclear:N \g_aes_authors_seq
+  \seq_gclear:N \g_aes_metadata_authors_seq
+  \seq_gclear:N \g_aes_affiliations_seq
+  \tl_gclear:N \g_aes_emails_tl
+  \bool_gset_false:N \g_aes_has_equal_bool
+  \bool_gset_false:N \g_aes_has_corresponding_bool
+ }
+\NewDocumentCommand \aesmakeauthors {}
+ {
+  \par\noindent\begin{minipage}{\linewidth}
+  \raggedright\setlength{\parindent}{0pt}\setlength{\parskip}{0pt}
+  {\regularfont\fontsize{10}{13}\selectfont\color{bodyink}
+   \seq_use:Nn \g_aes_authors_seq {\penalty0\hskip1em\relax}\par}
+  \seq_if_empty:NF \g_aes_affiliations_seq
+   {\vspace{2pt}{\regularfont\fontsize{9}{12}\selectfont\color{secondary}
+    \seq_use:Nn \g_aes_affiliations_seq {\penalty0\hskip1.5em\relax}\par}}
+  \tl_if_blank:VF \g_aes_emails_tl
+   {\vspace{2pt}{\regularfont\fontsize{9}{12}\selectfont\color{secondary}
+    \tl_use:N \g_aes_emails_tl\par}}
+  \bool_if:nT {\g_aes_has_equal_bool || \g_aes_has_corresponding_bool}
+   {\vspace{3pt}{\regularfont\fontsize{8}{10.5}\selectfont\color{secondary}
+    \bool_if:NT \g_aes_has_equal_bool
+     {\textsuperscript{\textdagger}\,\tl_use:N \g_aes_equal_note_tl}
+    \bool_if:nT {\g_aes_has_equal_bool && \g_aes_has_corresponding_bool}{\quad}
+    \bool_if:NT \g_aes_has_corresponding_bool
+     {\textsuperscript{*}\,\tl_use:N \g_aes_corresponding_note_tl}\par}}
+  \end{minipage}\par
+ }
+\ExplSyntaxOff
+
+\renewcommand{\bibfont}{\normalfont\fontsize{10}{12}\selectfont\color{bodyink}\raggedright}
+\setlength{\bibsep}{6pt}
+\setlength{\bibhang}{1.5em}
+\bibliographystyle{aes-author-year}
+\RequirePackage{fancyhdr}
+\newcommand{\aesshorttitle}{Agent Evaluation Science}
+\newcommand{\shorttitle}[1]{\renewcommand{\aesshorttitle}{#1}}
+\newcommand{\aesrunningfont}{\regularfont\fontsize{8}{10}\selectfont\color{secondary}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\footskip}{22pt}
+\fancyhead[L]{\aesrunningfont\aesshorttitle}
+\fancyfoot[C]{\aesrunningfont\thepage}
+\fancypagestyle{aesfirstpage}{%
+ \fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+ \fancyfoot[C]{\aesrunningfont\thepage}}
+
+% ===== headings =====
+\RequirePackage{xcolor,etoolbox}
+\providecolor{aesink}{HTML}{090C27}
+\setcounter{secnumdepth}{3}
+
+% Retain the article heading policy: keep at least two body lines with a heading.
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+ {-\the\aessectionbefore plus -2pt minus -2pt}%
+ {\the\aessectionafter plus 1pt minus 1pt}%
+ {\normalfont\color{aesink}\fontsize{13}{16}\selectfont\bfseries\raggedright}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+ {-\the\aessubsectionbefore plus -2pt minus -1pt}%
+ {\the\aessubsectionafter plus 1pt minus 1pt}%
+ {\normalfont\color{aesink}\fontsize{12}{15}\selectfont\bfseries\raggedright}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+ {-\the\aessubsubsectionbefore plus -1pt minus -1pt}%
+ {\the\aessubsubsectionafter plus 1pt minus 1pt}%
+ {\normalfont\color{aesink}\fontsize{11}{13.6}\selectfont\bfseries\raggedright}}
+
+% ===== lists =====
+\RequirePackage{enumitem}
+% Permit page breaks between items; discourage breaks within an item.
+% Keep the first/last line with its neighbor; finite interior penalties
+% let very long items split instead of overflowing a page.
+
+\newcommand{\aeslistbreaks}{%
+ \interlinepenalty=3000\relax
+ \@clubpenalty=10000\relax
+ \clubpenalty=10000\relax
+ \widowpenalty=10000\relax}
+
+% Accepted first-level bullet and numbered lists.
+\setlist[itemize,1]{label=\textbullet,leftmargin=1.5em,labelsep=0.5em,
+ itemsep=2pt,parsep=0pt,topsep=6pt,partopsep=0pt,
+ midpenalty=0,before=\aeslistbreaks}
+\setlist[enumerate,1]{label=\arabic*.,leftmargin=1.5em,labelsep=0.5em,
+ itemsep=2pt,parsep=0pt,topsep=6pt,partopsep=0pt,
+ midpenalty=0,before=\aeslistbreaks}
+
+% ===== longtable =====
+\RequirePackage{xparse,longtable,booktabs,caption,xcolor}
+\providecolor{bodyink}{HTML}{111318}
+\providecommand{\regularfont}{\normalfont}
+% Arguments: column specification, column count, caption, label, header cells.
+% The full caption is below the final fragment. Continuation pages repeat
+% the table number and column headings without advancing the table counter.
+\NewDocumentEnvironment{aeslongtable}{m m m m m}
+ {%
+  \par\begingroup
+  \normalfont\fontsize{10}{13}\selectfont\color{bodyink}%
+  \setlength{\parskip}{0pt}%
+  \renewcommand{\arraystretch}{1.25}%
+  \setlength{\LTleft}{0pt}%
+  \setlength{\LTright}{0pt plus 1fill}%
+  \setlength{\LTcapwidth}{\linewidth}%
+  \setlength{\LTpre}{16pt}%
+  \setlength{\LTpost}{16pt}%
+  \captionsetup{position=bottom}%
+  \begin{longtable}{#1}
+  \toprule
+  #5\\
+  \midrule
+  \endfirsthead
+  \multicolumn{#2}{@{}l@{}}{%
+   \regularfont\fontsize{10}{12}\selectfont\color{bodyink}%
+   \tablename~\thetable\enspace\textbar\enspace Continued}\\[8pt]
+  \toprule
+  #5\\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \bottomrule
+  \caption{#3}\label{#4}\\
+  \endlastfoot
+ }
+ {\end{longtable}\endgroup}
+
+% ===== floats =====
+% Try placement near the insertion point, while allowing normal floating.
+% Authors may override this default with an explicit placement argument.
+
+\def\fps@figure{htbp}
+\def\fps@table{htbp}
+
+
+% ===== footnotes =====
+\RequirePackage{xcolor}
+\providecolor{bodyink}{HTML}{111318}
+\renewcommand{\footnotesize}{\normalfont\fontsize{9}{12}\selectfont\color{bodyink}}
+\setlength{\skip\footins}{12pt}
+\setlength{\footnotesep}{6pt}
+\renewcommand{\footnoterule}{\kern-3pt\hrule width 0.25\textwidth height 0.4pt\kern2.6pt}
+
+% ===== appendix =====
+% Flush pending figures and tables before starting the appendix.
+% Keep standard article numbering: A, A.1, A.1.1.
+
+\let\aes@originalappendix\appendix
+\renewcommand{\appendix}{%
+ \clearpage\aes@originalappendix
+ \@addtoreset{figure}{section}%
+ \@addtoreset{table}{section}%
+ \renewcommand{\thefigure}{\thesection\arabic{figure}}%
+ \renewcommand{\thetable}{\thesection\arabic{table}}%
+ % Distinct PDF destinations from the main text and other appendices.
+ \def\theHfigure{appendix.\thesection.\arabic{figure}}%
+ \def\theHtable{appendix.\thesection.\arabic{table}}%
+}
+
+% ===== backmatter =====
+% Use before the bibliography for optional acknowledgments and statements.
+% Inherit the current section typography without advancing its counter.
+\newcommand{\aesbackmattersection}[1]{%
+ \section*{#1}\addcontentsline{toc}{section}{#1}}
+
+% ===== bookmarks =====
+\RequirePackage{etoolbox,hyperref}
+% Sidebar navigation only: no printed table of contents.
+\hypersetup{bookmarksdepth=1,bookmarksopen=true,bookmarksopenlevel=0}
+
+% Keep numbered-heading destinations inside the heading's number box.
+% A vertical anchor can otherwise remain on the preceding page when lineno
+% moves the heading. Counter/label state and visual spacing are unchanged.
+\newcommand{\aes@headingrefstepcounter}[1]{%
+ \let\aes@savedraisedlink\Hy@raisedlink
+ \let\Hy@raisedlink\@gobble
+ \refstepcounter{#1}%
+ \let\Hy@raisedlink\aes@savedraisedlink}
+\patchcmd{\NR@sect}{\refstepcounter{#1}}{\aes@headingrefstepcounter{#1}}
+ {}{\PackageError{aes}{Cannot defer heading destination}{}}
+\patchcmd{\NR@sect}
+ {\protected@edef\@svsec{\@seccntformat{#1}\relax}}
+ {\protected@edef\@svsec{%
+   \noexpand\Hy@raisedlink{%
+    \noexpand\hyper@anchorstart{\@currentHref}\noexpand\hyper@anchorend}%
+   \@seccntformat{#1}\relax}}
+ {}{\PackageError{aes}{Cannot attach destination to heading}{}}
+
+\AtBeginDocument{%
+ \apptocmd{\bibsection}{\addcontentsline{toc}{section}{\refname}}{}
+  {\PackageError{aes}{Cannot add bibliography bookmark}
+    {Load the natbib bibliography setup before aes-bookmarks.}}}
+
+% ===== keywords =====
+\RequirePackage{xparse,xcolor}
+\providecolor{bodyink}{HTML}{111318}
+\providecolor{aespurple}{HTML}{6658E8}
+\ExplSyntaxOn
+\tl_new:N \g_aes_keywords_tl
+\NewDocumentCommand \aeskeywords {m}
+ {\tl_gset:Nn \g_aes_keywords_tl {#1}}
+\NewDocumentCommand \aesprintkeywords {}
+ {
+  \tl_if_blank:VF \g_aes_keywords_tl
+   {
+    \par\vspace{7pt}
+    {\normalfont\fontsize{10}{12}\selectfont\color{bodyink}\noindent
+     \textcolor{aespurple}{\bfseries Keywords:}\enspace
+     \tl_use:N \g_aes_keywords_tl\par}
+   }
+ }
+\ExplSyntaxOff
+
+
+% ===== mode =====
+\newif\ifaesreview
+\ifaes@classreview\aesreviewtrue\else\aesreviewfalse\fi
+\RequirePackage{environ}
+\RequirePackage{xcolor}
+\providecolor{secondary}{HTML}{454754}
+\providecolor{bodyink}{HTML}{111318}
+% Capture the entire body: hidden text is never typeset or executed.
+\NewEnviron{aespubliconly}{\ifaesreview\else\BODY\fi}
+\newcommand{\aesstartlinenumbers}{}
+\ifaesreview
+ \RequirePackage{lineno}
+ \renewcommand{\linenumberfont}{\normalfont\fontsize{7}{8}\selectfont\color{secondary}}
+ \setlength{\linenumbersep}{9pt}
+ \modulolinenumbers[1]
+ \renewcommand{\aesstartlinenumbers}{\linenumbers}
+ % Give review links a separate namespace, also for comparison PDFs.
+ \renewcommand*{\HyperDestNameFilter}[1]{review.#1}
+ \AtBeginDocument{%
+  \hypersetup{pdfauthor={},pdfsubject={},pdfkeywords={}}%
+  \renewcommand{\aesmakeauthors}{%
+   \par\noindent\begin{minipage}{\linewidth}%
+    \raggedright\setlength{\parindent}{0pt}\setlength{\parskip}{0pt}%
+    {\normalfont\fontsize{10}{13}\selectfont\color{bodyink}Anonymous authors\par}%
+   \end{minipage}\par}%
+  \fancyhead[R]{\aesrunningfont Anonymous review}%
+ }
+\fi
+
+% Title API: an optional short form supplies the running header.
+\RenewDocumentCommand{\title}{O{}m}{%
+ \gdef\@title{#2}%
+ \ifstrempty{#1}{\gdef\aesshorttitle{#2}}{\gdef\aesshorttitle{#1}}}
+\renewcommand{\maketitle}{%
+ \par\begingroup
+ \setlength{\parskip}{0pt}\setlength{\parindent}{0pt}%
+ \thispagestyle{aesfirstpage}%
+ % Compensate the initial empty baseline introduced by starred vertical space.
+ \vspace*{\dimexpr\aesfirstpagetop-\aesbodytop-\baselineskip\relax}%
+ \noindent\begin{minipage}[c]{7.5mm}%
+  \includegraphics[width=6.5mm]{assets/aes-mark.pdf}%
+ \end{minipage}\hspace{1.5mm}%
+ \begin{minipage}[c]{72mm}%
+  \color{aesink}\fontsize{7.5}{9}\selectfont\bfseries
+  AGENT EVALUATION\\SCIENCE
+ \end{minipage}\par
+ \vspace{\aesbrandtitlesep}%
+ {\color{aesink}\fontsize{22}{26.4}\selectfont\bfseries\raggedright\@title\par}%
+ \vspace{\aestitleauthorsep}%
+ \aesmakeauthors
+ \vspace{\aesauthorabstractsep}%
+ \endgroup
+}
+\renewenvironment{abstract}{%
+ \par\begingroup\setlength{\parskip}{0pt}%
+ \begin{tcolorbox}[colback=aestint,colframe=aestint,boxrule=0pt,arc=10pt,
+  left=14pt,right=14pt,top=14pt,bottom=14pt,boxsep=0pt,
+  before skip=0pt,after skip=0pt]
+ \setlength{\parindent}{0pt}%
+ {\color{aespurple}\fontsize{10}{12}\selectfont\bfseries Abstract\par}%
+ \vspace{3pt}\normalfont\normalsize\color{bodyink}\ignorespaces
+}{%
+ \par\aesprintkeywords\end{tcolorbox}\endgroup
+ \ignorespacesafterend
+}
+% Activate outside the abstract environment's local group.
+% Heading spacing handles the transition from abstract to main text.
+\AfterEndEnvironment{abstract}{\aesstartlinenumbers}
+\AtBeginDocument{%
+ \normalfont\normalsize\color{bodyink}%
+ \hypersetup{pdftitle={\@title}}%
+ \ifaesreview
+  \hypersetup{pdfauthor={},pdfsubject={},pdfkeywords={}}%
+ \else
+  \hypersetup{pdfauthor={\aesmetaauthors}}%
+ \fi
+}
+\endinput

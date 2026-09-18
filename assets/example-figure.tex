@@ -1,0 +1,21 @@
+% Rebuild from the project root: xelatex -output-directory=assets assets/example-figure.tex
+\documentclass[tikz,border=2pt]{standalone}
+\usepackage{fontspec}
+\setmainfont{OpenSans}[Path=fonts/,Extension=.ttf,UprightFont=*-Regular,BoldFont=*-Bold]
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{purple}{HTML}{6658E8}
+\definecolor{ink}{HTML}{090C27}
+\definecolor{tint}{HTML}{F4F3FA}
+\begin{document}
+\begin{tikzpicture}[
+ box/.style={rounded corners=5pt,draw=purple!35,fill=tint,
+ text=ink,text width=3.7cm,minimum height=1.5cm,align=center,inner sep=8pt},
+ flow/.style={-{Stealth[length=2mm]},draw=purple,line width=.8pt},
+ font=\fontsize{10}{13}\selectfont]
+\node[box] (a) {\textbf{Task setup}\\Inputs and\\constraints};
+\node[box,right=8mm of a] (b) {\textbf{Agent run}\\Actions and\\observations};
+\node[box,right=8mm of b] (c) {\textbf{Scoring}\\Scores and\\evidence};
+\draw[flow] (a)--(b);
+\draw[flow] (b)--(c);
+\end{tikzpicture}
+\end{document}
